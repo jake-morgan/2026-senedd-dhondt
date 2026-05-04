@@ -321,6 +321,54 @@ function render() {
   });
   tHtml += `</tbody></table>`;
   document.getElementById("quotientTable").innerHTML = tHtml;
+
+  syncUrl();
+}
+
+function syncUrl() {
+  const params = new URLSearchParams();
+  params.set("mode", inputMode);
+  params.set("seats", document.getElementById("totalSeats").value);
+  if (inputMode === "pct") {
+    params.set("pop", document.getElementById("population").value);
+    params.set("to", document.getElementById("turnout").value);
+  }
+  parties.forEach(p => {
+    const val = inputMode === "pct" ? p.pct : p.votes;
+    const color = (p.color || "").replace(/^#/, "");
+    params.append("p", `${p.name}|${val}|${color}`);
+  });
+  const qs = params.toString();
+  history.replaceState(null, "", qs ? `${location.pathname}?${qs}` : location.pathname);
+}
+
+function loadFromUrl() {
+  const params = new URLSearchParams(location.search);
+  if ([...params.keys()].length === 0) return;
+  const mode = params.get("mode");
+  if (mode === "votes" || mode === "pct") inputMode = mode;
+  const seats = params.get("seats");
+  if (seats) document.getElementById("totalSeats").value = seats;
+  const pop = params.get("pop");
+  if (pop) document.getElementById("population").value = pop;
+  const to = params.get("to");
+  if (to) document.getElementById("turnout").value = to;
+  const ps = params.getAll("p");
+  if (ps.length) {
+    parties = ps.map((s, i) => {
+      const [name, val, color] = s.split("|");
+      const value = parseFloat(val) || 0;
+      return {
+        name: name || `Party ${i + 1}`,
+        votes: inputMode === "votes" ? value : 0,
+        pct: inputMode === "pct" ? value : 0,
+        color: color ? `#${color}` : COLORS[i % COLORS.length],
+      };
+    });
+  }
+  document.getElementById("btnVotes").classList.toggle("active", inputMode === "votes");
+  document.getElementById("btnPct").classList.toggle("active", inputMode === "pct");
+  document.getElementById("turnoutRow").classList.toggle("show", inputMode === "pct");
 }
 
 function updateParty(i, field, val) {
@@ -376,6 +424,7 @@ async function loadConstituencies() {
     // file:// or fetch unavailable — dropdown stays empty, manual entry still works
   }
 }
+loadFromUrl();
 loadConstituencies();
 render();
 </script>
