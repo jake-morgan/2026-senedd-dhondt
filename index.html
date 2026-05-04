@@ -365,6 +365,7 @@ async function loadConstituencies() {
       const electorate = parseInt(line.slice(idx + 1).trim(), 10);
       if (name && Number.isFinite(electorate) && electorate > 0) rows.push({ name, electorate });
     });
+    rows.sort((a, b) => a.name.localeCompare(b.name));
     rows.forEach(r => {
       const opt = document.createElement("option");
       opt.value = String(r.electorate);
