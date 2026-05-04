@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>D'Hondt Calculator</title>
+<meta name="description" content="D'Hondt method calculator for proportional representation. Compute seat allocations, explore margins, and share scenarios via the URL.">
+<meta property="og:title" content="D'Hondt Calculator">
+<meta property="og:description" content="Highest averages method for proportional representation. Tweak parties, seats, and turnout — share the result by link.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://jake-morgan.github.io/2026-senedd-dhondt/">
+<meta property="og:image" content="https://jake-morgan.github.io/2026-senedd-dhondt/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="D'Hondt Calculator">
+<meta name="twitter:description" content="Highest averages method for proportional representation.">
+<meta name="twitter:image" content="https://jake-morgan.github.io/2026-senedd-dhondt/og-image.png">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -69,6 +79,13 @@
   .gap-neg { color: #f85149; }
   .cutoff-bar { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: #1c2129; border-bottom: 1px solid #21262d; font-size: 11px; color: #8b949e; gap: 12px; flex-wrap: wrap; }
   .cutoff-bar strong { color: #f85149; font-weight: 600; }
+  .header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+  .header-row .title-block { min-width: 0; }
+  .header-row h1 { margin-bottom: 4px; }
+  .copy-btn { padding: 6px 12px; font-size: 12px; background: #161b22; border: 1px solid #30363d; color: #c9d1d9; border-radius: 6px; cursor: pointer; font-family: inherit; flex-shrink: 0; transition: background 0.15s, border-color 0.15s, color 0.15s; }
+  .copy-btn:hover { background: #1c2129; border-color: #58a6ff; color: #58a6ff; }
+  .copy-btn.copied { background: #0d2818; border-color: #2ea043; color: #3fb950; }
+  .sum-warn { display: inline-block; margin-left: 6px; padding: 1px 6px; font-size: 10px; font-weight: 600; color: #d29922; background: rgba(210,153,34,0.12); border: 1px solid rgba(210,153,34,0.35); border-radius: 4px; letter-spacing: 0.3px; }
   @media (max-width: 640px) {
     body { padding: 16px 12px; }
     .grid-header, .grid-row { grid-template-columns: 18px 1fr 88px 36px 22px; padding-left: 10px; padding-right: 10px; }
@@ -99,8 +116,13 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>D'Hondt Calculator</h1>
-  <p class="sub">Highest averages method for proportional representation</p>
+  <div class="header-row">
+    <div class="title-block">
+      <h1>D'Hondt Calculator</h1>
+      <p class="sub">Highest averages method for proportional representation</p>
+    </div>
+    <button class="copy-btn" id="copyLinkBtn" type="button" onclick="copyLink()" title="Copy a shareable link to this scenario">Copy link</button>
+  </div>
 
   <div class="seats-row">
     <label>Total seats</label>
@@ -227,7 +249,9 @@ function render() {
   });
   const totalV = parties.reduce((s, p) => s + (isPct ? p.pct : p.votes), 0);
   const totalS = valid.length > 0 ? seats.reduce((a, b) => a + b, 0) : 0;
-  const totalDisplay = isPct ? totalV.toFixed(1) + '%' : totalV.toLocaleString();
+  const pctOff = isPct && parties.length > 0 && Math.abs(totalV - 100) > 0.5;
+  const warnBadge = pctOff ? `<span class="sum-warn" title="Percentages should sum to 100">≠ 100</span>` : '';
+  const totalDisplay = (isPct ? totalV.toFixed(1) + '%' : totalV.toLocaleString()) + warnBadge;
   rowsHtml += `<div class="grid-row" style="border-top:2px solid #30363d;font-weight:700">
     <div></div>
     <div style="padding:4px 8px;font-size:13px;color:#8b949e">Total</div>
@@ -383,6 +407,33 @@ function addParty() {
   render();
 }
 function removeParty(i) { parties.splice(i, 1); render(); }
+
+async function copyLink() {
+  const btn = document.getElementById("copyLinkBtn");
+  const url = location.href;
+  let ok = false;
+  try {
+    await navigator.clipboard.writeText(url);
+    ok = true;
+  } catch (e) {
+    const tmp = document.createElement("textarea");
+    tmp.value = url;
+    tmp.setAttribute("readonly", "");
+    tmp.style.position = "absolute";
+    tmp.style.left = "-9999px";
+    document.body.appendChild(tmp);
+    tmp.select();
+    try { ok = document.execCommand("copy"); } catch (_) { ok = false; }
+    document.body.removeChild(tmp);
+  }
+  btn.textContent = ok ? "Copied" : "Copy failed";
+  btn.classList.toggle("copied", ok);
+  clearTimeout(copyLink._t);
+  copyLink._t = setTimeout(() => {
+    btn.textContent = "Copy link";
+    btn.classList.remove("copied");
+  }, 1500);
+}
 
 document.getElementById("totalSeats").addEventListener("input", render);
 document.getElementById("population").addEventListener("input", () => {
