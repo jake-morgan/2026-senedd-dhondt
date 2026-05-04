@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D'Hondt Calculator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'JetBrains Mono', 'SF Mono', monospace; background: #0d1117; color: #c9d1d9; padding: 24px; }
+  input { font-family: inherit; }
+  input[type=number]::-webkit-inner-spin-button { opacity: 1; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #161b22; }
+  ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 700; color: #58a6ff; margin-bottom: 4px; letter-spacing: -0.5px; }
+  .sub { font-size: 12px; color: #484f58; margin-bottom: 20px; }
+  .toggle-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .toggle-btn { padding: 5px 12px; font-size: 12px; background: #0d1117; border: 1px solid #30363d; color: #8b949e; cursor: pointer; font-family: inherit; }
+  .toggle-btn:first-of-type { border-radius: 6px 0 0 6px; }
+  .toggle-btn:last-of-type { border-radius: 0 6px 6px 0; margin-left: -1px; }
+  .toggle-btn.active { background: #58a6ff; color: #0d1117; border-color: #58a6ff; font-weight: 600; }
+  .seats-row { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .seats-row label { font-size: 12px; color: #8b949e; }
+  .seats-input { width: 64px; padding: 6px 8px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; text-align: center; }
+  .panel { background: #161b22; border: 1px solid #21262d; border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+  .grid-header { display: grid; grid-template-columns: 24px 1fr 120px 60px 60px 28px; gap: 0; padding: 8px 12px; border-bottom: 1px solid #21262d; font-size: 11px; color: #484f58; text-transform: uppercase; letter-spacing: 0.5px; }
+  .grid-row { display: grid; grid-template-columns: 24px 1fr 120px 60px 60px 28px; gap: 0; padding: 6px 12px; align-items: center; border-bottom: 1px solid #21262d; }
+  .dot { width: 10px; height: 10px; border-radius: 2px; }
+  .name-input { background: transparent; border: none; color: #c9d1d9; font-size: 13px; padding: 4px 8px; outline: none; width: 100%; }
+  .votes-input { background: #0d1117; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9; font-size: 13px; padding: 4px 8px; text-align: right; width: 100%; }
+  .seat-val { text-align: center; font-size: 16px; font-weight: 700; }
+  .pct-val { text-align: center; font-size: 12px; color: #8b949e; }
+  .rm-btn { background: transparent; border: none; color: #484f58; cursor: pointer; font-size: 16px; padding: 0; line-height: 1; }
+  .rm-btn:hover { color: #f85149; }
+  .add-btn { width: 100%; padding: 8px; background: transparent; border: none; color: #58a6ff; font-size: 12px; cursor: pointer; text-align: left; padding-left: 36px; }
+  .add-btn:hover { background: #1c2129; }
+  .section-label { font-size: 11px; color: #484f58; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .bar-label { width: 80px; font-size: 11px; color: #8b949e; text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-track { flex: 1; background: #0d1117; border-radius: 3px; height: 20px; }
+  .bar-fill { height: 100%; border-radius: 3px; opacity: 0.85; transition: width 0.3s ease; }
+  .bar-num { width: 28px; font-size: 13px; font-weight: 700; color: #c9d1d9; text-align: right; }
+  details summary { padding: 10px 14px; font-size: 11px; color: #484f58; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; user-select: none; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { padding: 6px 12px; text-align: left; color: #484f58; font-weight: 600; border-bottom: 1px solid #21262d; }
+  th:last-child { text-align: right; }
+  td { padding: 5px 12px; }
+  td:last-child { text-align: right; color: #8b949e; }
+  .qt-table { max-height: 300px; overflow: auto; }
+  .margin-row { display: grid; grid-template-columns: 80px 32px 1fr 110px 90px; gap: 10px; align-items: center; padding: 6px 14px; font-size: 12px; border-bottom: 1px solid #21262d; }
+  .margin-row:last-child { border-bottom: none; }
+  .margin-name { color: #c9d1d9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+  .margin-seats { color: #8b949e; text-align: center; font-variant-numeric: tabular-nums; }
+  .margin-track { position: relative; background: #0d1117; height: 14px; border-radius: 3px; overflow: hidden; }
+  .margin-fill { height: 100%; opacity: 0.7; }
+  .margin-cutoff { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #f85149; }
+  .margin-q { text-align: right; color: #c9d1d9; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .margin-gap { text-align: right; font-variant-numeric: tabular-nums; font-size: 11px; line-height: 1.3; }
+  .margin-gap-votes { display: block; color: #8b949e; font-size: 10px; }
+  .turnout-row { display: none; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .turnout-row.show { display: flex; }
+  .turnout-row label { font-size: 12px; color: #8b949e; }
+  .turnout-input { width: 120px; padding: 6px 8px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 13px; text-align: right; font-family: inherit; font-variant-numeric: tabular-nums; }
+  .turnout-input.small { width: 64px; text-align: center; }
+  .turnout-derived { font-size: 11px; color: #484f58; }
+  .gap-pos { color: #3fb950; }
+  .gap-neg { color: #f85149; }
+  .cutoff-bar { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: #1c2129; border-bottom: 1px solid #21262d; font-size: 11px; color: #8b949e; }
+  .cutoff-bar strong { color: #f85149; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>D'Hondt Calculator</h1>
+  <p class="sub">Highest averages method for proportional representation</p>
+
+  <div class="seats-row">
+    <label>Total seats</label>
+    <input class="seats-input" type="number" id="totalSeats" min="1" max="300" value="6">
+  </div>
+
+  <div class="toggle-wrap">
+    <label style="font-size:12px;color:#8b949e">Input as</label>
+    <div>
+      <button class="toggle-btn" id="btnVotes" onclick="setMode('votes')">Votes</button>
+      <button class="toggle-btn active" id="btnPct" onclick="setMode('pct')">Percentages</button>
+    </div>
+  </div>
+
+  <div class="turnout-row show" id="turnoutRow">
+    <label>Eligible population</label>
+    <input class="turnout-input" type="number" id="population" min="0" step="1000" value="168000">
+    <label>Turnout</label>
+    <input class="turnout-input small" type="number" id="turnout" min="0" max="100" step="0.1" value="50">
+    <span style="font-size:12px;color:#8b949e">%</span>
+    <span class="turnout-derived" id="turnoutDerived"></span>
+  </div>
+
+  <div class="panel">
+    <div class="grid-header" id="gridHeader"><span></span><span>Party</span><span>Votes</span><span style="text-align:center">Seats</span><span style="text-align:center">%</span><span></span></div>
+    <div id="partyRows"></div>
+    <button class="add-btn" onclick="addParty()">+ Add party</button>
+  </div>
+
+  <div class="panel" style="padding:16px">
+    <div class="section-label">Seat allocation</div>
+    <div id="barChart"></div>
+  </div>
+
+  <div class="panel">
+    <div style="padding:14px 14px 8px"><div class="section-label" style="margin-bottom:0">Margins — next quotient vs. cutoff</div></div>
+    <div id="cutoffBar"></div>
+    <div id="marginRows"></div>
+  </div>
+
+  <details class="panel">
+    <summary>Round-by-round quotients</summary>
+    <div class="qt-table" id="quotientTable"></div>
+  </details>
+</div>
+
+<script>
+const COLORS = ["#E63946","#457B9D","#2A9D8F","#E9C46A","#F4A261","#6A4C93","#1982C4","#8AC926","#FF595E","#0B525B","#CA6702","#9B2226"];
+
+let parties = [
+  { name: "Plaid Cymru",  votes: 195000,    pct: 0.7,  color: "#008142" },
+  { name: "Reform",       votes: 4118000,   pct: 14.3, color: "#12B6CF" },
+  { name: "Labour",       votes: 9705000,   pct: 33.7, color: "#E4003B" },
+  { name: "Conservative", votes: 6827000,   pct: 23.7, color: "#0087DC" },
+  { name: "Lib Dems",     votes: 3519000,   pct: 12.2, color: "#FAA61A" },
+  { name: "Greens",       votes: 1944000,   pct: 6.7,  color: "#6AB023" },
+  { name: "Other",        votes: 2477000,   pct: 8.6,  color: "#8b949e" },
+];
+
+let inputMode = 'pct'; // 'votes' or 'pct'
+
+function setMode(mode) {
+  inputMode = mode;
+  document.getElementById("btnVotes").classList.toggle("active", mode === "votes");
+  document.getElementById("btnPct").classList.toggle("active", mode === "pct");
+  document.getElementById("turnoutRow").classList.toggle("show", mode === "pct");
+  render();
+}
+
+function calcDhondt(ps, total) {
+  const seats = ps.map(() => 0);
+  const rounds = [];
+  for (let s = 0; s < total; s++) {
+    let maxQ = -1, maxI = 0;
+    ps.forEach((p, i) => {
+      const val = inputMode === 'pct' ? p.pct : p.votes;
+      const q = val / (seats[i] + 1);
+      if (q > maxQ) { maxQ = q; maxI = i; }
+    });
+    seats[maxI]++;
+    rounds.push({ round: s + 1, idx: maxI, q: maxQ });
+  }
+  const nextQ = ps.map((p, i) => {
+    const val = inputMode === 'pct' ? p.pct : p.votes;
+    return val / (seats[i] + 1);
+  });
+  const cutoff = rounds.length > 0 ? rounds[rounds.length - 1].q : 0;
+  return { seats, rounds, nextQ, cutoff };
+}
+
+function render() {
+  const totalSeats = Math.max(1, parseInt(document.getElementById("totalSeats").value) || 1);
+  const isPct = inputMode === 'pct';
+  const valid = parties.filter(p => isPct ? p.pct > 0 : p.votes > 0);
+  const { seats, rounds, nextQ, cutoff } = calcDhondt(valid, totalSeats);
+  const totalVotes = valid.reduce((s, p) => s + p.votes, 0);
+  const totalPct = parties.reduce((s, p) => s + p.pct, 0);
+  const maxS = Math.max(...seats, 1);
+
+  // Update header
+  document.getElementById("gridHeader").innerHTML = `<span></span><span>Party</span><span>${isPct ? '% Vote' : 'Votes'}</span><span style="text-align:center">Seats</span><span style="text-align:center">${isPct ? '' : '%'}</span><span></span>`;
+
+  // Party rows
+  let rowsHtml = "";
+  parties.forEach((p, i) => {
+    const vi = valid.indexOf(p);
+    const s = vi >= 0 ? seats[vi] : 0;
+    const pct = totalVotes > 0 && p.votes > 0 ? ((p.votes / totalVotes) * 100).toFixed(1) : "0.0";
+    const c = p.color;
+    const inputVal = isPct ? p.pct : p.votes;
+    const step = isPct ? 'step="0.01"' : '';
+    rowsHtml += `<div class="grid-row">
+      <input type="color" value="${c}" onchange="updateParty(${i},'color',this.value)" style="width:20px;height:20px;padding:0;border:none;background:transparent;cursor:pointer">
+      <input class="name-input" value="${p.name}" onchange="updateParty(${i},'name',this.value)">
+      <input class="votes-input" type="number" min="0" ${step} value="${inputVal}" onchange="updateParty(${i},'${isPct ? 'pct' : 'votes'}',this.value)">
+      <div class="seat-val" style="color:${c}">${s}</div>
+      <div class="pct-val">${isPct ? '' : pct + '%'}</div>
+      <button class="rm-btn" onclick="removeParty(${i})" title="Remove">×</button>
+    </div>`;
+  });
+  const totalV = parties.reduce((s, p) => s + (isPct ? p.pct : p.votes), 0);
+  const totalS = valid.length > 0 ? seats.reduce((a, b) => a + b, 0) : 0;
+  const totalDisplay = isPct ? totalV.toFixed(1) + '%' : totalV.toLocaleString();
+  rowsHtml += `<div class="grid-row" style="border-top:2px solid #30363d;font-weight:700">
+    <div></div>
+    <div style="padding:4px 8px;font-size:13px;color:#8b949e">Total</div>
+    <div style="text-align:right;padding:4px 8px;font-size:13px;color:#c9d1d9">${totalDisplay}</div>
+    <div class="seat-val" style="color:#c9d1d9">${totalS}</div>
+    <div class="pct-val"></div>
+    <div></div>
+  </div>`;
+  document.getElementById("partyRows").innerHTML = rowsHtml;
+
+  // Bar chart
+  let barHtml = "";
+  valid.forEach((p, i) => {
+    const c = p.color;
+    const w = (seats[i] / maxS) * 100;
+    barHtml += `<div class="bar-row">
+      <div class="bar-label">${p.name}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${c};${seats[i] > 0 ? 'min-width:2px' : ''}"></div></div>
+      <div class="bar-num">${seats[i]}</div>
+    </div>`;
+  });
+  document.getElementById("barChart").innerHTML = barHtml;
+
+  // Margins panel
+  const fmtQ = (q) => isPct ? q.toFixed(2) : Math.round(q).toLocaleString();
+  const population = Math.max(0, parseInt(document.getElementById("population").value) || 0);
+  const turnout = Math.max(0, Math.min(100, parseFloat(document.getElementById("turnout").value) || 0));
+  const effectiveVotes = isPct ? Math.round(population * turnout / 100) : 0;
+  if (isPct) {
+    document.getElementById("turnoutDerived").textContent = effectiveVotes > 0 ? `≈ ${effectiveVotes.toLocaleString()} total votes` : "";
+  }
+  const fmtVotes = (v) => {
+    const a = Math.abs(v);
+    if (a >= 1e6) return (v / 1e6).toFixed(2) + "M";
+    if (a >= 1e3) return (v / 1e3).toFixed(1) + "k";
+    return Math.round(v).toLocaleString();
+  };
+  if (valid.length === 0 || rounds.length === 0) {
+    document.getElementById("cutoffBar").innerHTML = "";
+    document.getElementById("marginRows").innerHTML = `<div style="padding:14px;color:#484f58;font-size:12px">Add parties and seats to see margins.</div>`;
+  } else {
+    const lastWin = rounds[rounds.length - 1];
+    const nextRound = rounds.length + 1;
+    // Hypothetical (n+1)th seat winner: highest current next-quotient
+    let nextWinIdx = 0, nextWinQ = -1;
+    nextQ.forEach((q, i) => { if (q > nextWinQ) { nextWinQ = q; nextWinIdx = i; } });
+    document.getElementById("cutoffBar").innerHTML = `
+      <div class="cutoff-bar">
+        <span>Cutoff (round ${lastWin.round}): <strong>${fmtQ(cutoff)}</strong> won by <span style="color:${valid[lastWin.idx].color}">${valid[lastWin.idx].name}</span></span>
+        <span>Next in line (round ${nextRound}): <span style="color:${valid[nextWinIdx].color}">${valid[nextWinIdx].name}</span> @ ${fmtQ(nextWinQ)}</span>
+      </div>`;
+
+    const maxScale = Math.max(cutoff, ...nextQ);
+    const order = valid.map((_, i) => i).sort((a, b) => nextQ[b] - nextQ[a]);
+    let mHtml = "";
+    order.forEach((i) => {
+      const p = valid[i];
+      const q = nextQ[i];
+      const gap = q - cutoff;
+      const gapPct = cutoff > 0 ? (gap / cutoff) * 100 : 0;
+      const fillW = (q / maxScale) * 100;
+      const cutW = (cutoff / maxScale) * 100;
+      const sign = gap >= 0 ? "+" : "−";
+      const gapDisplay = sign + fmtQ(Math.abs(gap)) + (isPct ? "%" : "") + (isPct ? "" : ` (${sign}${Math.abs(gapPct).toFixed(1)}%)`);
+      // In pct mode, the next-quotient gap = pct points; the actual *votes* needed
+      // for that party to gain another seat is (cutoff - currentNextQ) * (seats[i]+1) of percentage
+      // points worth of votes — but it's clearer to express margin in raw votes:
+      // votes-equivalent of the pct-point gap = gap_pct * effectiveVotes / 100.
+      const votesEquiv = isPct && effectiveVotes > 0 ? Math.round(Math.abs(gap) * (seats[i] + 1) * effectiveVotes / 100) : 0;
+      const votesLine = isPct && effectiveVotes > 0 ? `<span class="margin-gap-votes">${sign}${fmtVotes(votesEquiv)} votes</span>` : "";
+      mHtml += `<div class="margin-row">
+        <div class="margin-name" style="color:${p.color}">${p.name}</div>
+        <div class="margin-seats">${seats[i]}</div>
+        <div class="margin-track">
+          <div class="margin-fill" style="width:${fillW}%;background:${p.color}"></div>
+          <div class="margin-cutoff" style="left:${cutW}%"></div>
+        </div>
+        <div class="margin-q">${fmtQ(q)}</div>
+        <div class="margin-gap ${gap >= 0 ? "gap-pos" : "gap-neg"}">${gapDisplay}${votesLine}</div>
+      </div>`;
+    });
+    document.getElementById("marginRows").innerHTML = mHtml;
+  }
+
+  // Quotient table
+  let tHtml = `<table><thead><tr><th>Round</th><th>Seat awarded to</th><th style="text-align:right">Quotient</th></tr></thead><tbody>`;
+  rounds.forEach(r => {
+    const p = valid[r.idx];
+    const c = p.color;
+    tHtml += `<tr><td style="color:#484f58">${r.round}</td><td style="color:${c};font-weight:600">${p.name}</td><td>${isPct ? r.q.toFixed(2) : Math.round(r.q).toLocaleString()}</td></tr>`;
+  });
+  tHtml += `</tbody></table>`;
+  document.getElementById("quotientTable").innerHTML = tHtml;
+}
+
+function updateParty(i, field, val) {
+  if (field === "votes") parties[i].votes = Math.max(0, parseInt(val) || 0);
+  else if (field === "pct") parties[i].pct = Math.max(0, parseFloat(val) || 0);
+  else if (field === "color") parties[i].color = val;
+  else parties[i].name = val;
+  render();
+}
+function addParty() {
+  parties.push({ name: "Party " + String.fromCharCode(65 + parties.length), votes: 0, pct: 0, color: COLORS[parties.length % COLORS.length] });
+  render();
+}
+function removeParty(i) { parties.splice(i, 1); render(); }
+
+document.getElementById("totalSeats").addEventListener("input", render);
+document.getElementById("population").addEventListener("input", render);
+document.getElementById("turnout").addEventListener("input", render);
+render();
+</script>
+</body>
+</html>
